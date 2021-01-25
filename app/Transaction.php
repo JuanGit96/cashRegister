@@ -13,13 +13,6 @@ class Transaction extends Model
         "current_status"
     ];
 
-    /*const STATUS = [
-        0 => "Closed",
-        1 => "Open",
-        2 => "Inflow",
-        3 => "Outflow"
-    ];*/
-
     public function isOpen()
     {
         return $this->current_status >= 1;
@@ -30,13 +23,9 @@ class Transaction extends Model
         return $this->current_status = 0;
     } 
 
-    public function isInflowCash()
+    public function isTransaction()
     {
         return $this->current_status = 2;
     } 
 
-    public function isOutflowCash()
-    {
-        return $this->current_status = 3;
-    } 
 }

@@ -71,7 +71,7 @@ class TransactionController extends Controller
         $transaction = new TransactionRepository();
 
         #validar que la caja esté llena
-        if(!$transaction->cashRegisterIsOpen()) 
+        if(!$transaction->hasRegisters()) 
             return $this->errorResponse('',505);
 
         #procesar estado actual de caja
@@ -117,7 +117,7 @@ class TransactionController extends Controller
         $transaction = new TransactionRepository();
 
         #validar que la caja esté llena
-        if(!$transaction->cashRegisterIsOpen()) 
+        if(!$transaction->hasRegisters()) 
             return $this->errorResponse('',505);
 
         #procesar estado actual de caja
@@ -137,7 +137,7 @@ class TransactionController extends Controller
         $transaction = new TransactionRepository();
 
         #validar que la caja esté llena
-        if(!$transaction->cashRegisterIsOpen()) 
+        if(!$transaction->hasRegisters()) 
             return $this->errorResponse('',505);
 
         #procesar estado actual de caja

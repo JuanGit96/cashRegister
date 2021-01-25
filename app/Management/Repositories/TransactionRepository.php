@@ -5,6 +5,7 @@ namespace App\Management\Repositories;
 use App\Traits\FileManagement;
 use App\Transaction;
 use Carbon\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Date;
 
 class TransactionRepository
@@ -47,7 +48,17 @@ class TransactionRepository
             return false;
 
         return $transaction->isOpen();
-    }    
+    }  
+    
+    public function hasRegisters()
+    {
+        $transaction = Transaction::first();
+
+        if($transaction == null)
+            return false;
+
+        return true;
+    }
 
     /**
      * Proceso de apertura de caja registradora
@@ -168,14 +179,14 @@ class TransactionRepository
 
             if(explode("_",$denomination)[0] == "total")
             {
-                $inflow = $inflows["total_inflow"];
-                $outflow = $outflows["total_outflow"];
+                $inflow = $inflows["total_inflow"] ?? 0;
+                $outflow = $outflows["total_outflow"] ?? 0;
                 $response[$denomination] = $current + $inflow - $outflow;
             }
             else
             {
-                $inflow = $inflows[$denomination];
-                $outflow = $outflows[$denomination];
+                $inflow = $inflows[$denomination] ?? 0;
+                $outflow = $outflows[$denomination] ?? 0;
                 $response[$denomination] = $current + $inflow - $outflow;
             }
         }
@@ -200,7 +211,7 @@ class TransactionRepository
      *
      * @return void
      */
-    public function getEventLogs()
+    public function getEventLogs(): Collection
     {
         $transaction = Transaction::all();
         
@@ -261,7 +272,7 @@ class TransactionRepository
         $errors = [];
 
         $custom_data = $this->generateCustomVerifyData($data);
-//dd($custom_data);
+
         $payment_is_complete = $this->paymentIsComplete($custom_data);
 
         if(!$payment_is_complete)
@@ -273,14 +284,9 @@ class TransactionRepository
             $errors[] = "No hay dinero suficiente para dar el cambio";
 
         $have_cash_to_return = $this->haveCashToReturn($custom_data);
-//dd($have_cash_to_return);
+
         if(!$have_cash_to_return["isGeneratedChange"])
             $errors[] = "Hay dinero, pero no es posible juntar el cambio por las denominaciones en caja";        
-        
-        //$current_amount_increases = $this->currentAmountIncreases($custom_data);
-
-        //if(!$current_amount_increases)
-          //  $errors[] = "Luego de esta transaccion el monto no es superior";        
     
         if(count($errors))
             return [
@@ -295,7 +301,13 @@ class TransactionRepository
         ];
     }
 
-    public function generateCustomVerifyData(array $data)
+    /**
+     * genera data necesaria para verificar transaccion
+     *
+     * @param array $data
+     * @return array
+     */
+    public function generateCustomVerifyData(array $data): array
     {
         $current_cash_status = $this->getCurrentCashRegisterStatus();
 
@@ -310,44 +322,70 @@ class TransactionRepository
         return $custom_data;   
     }
 
-    public function paymentIsComplete(array $data)
+    /**
+     * Verifica si el pago está completo en la transaccion
+     *
+     * @param array $data
+     * @return boolean
+     */
+    public function paymentIsComplete(array $data): bool
     {
         return ($data["sum_inflow"] >= $data["amount_payment"]);
     }
 
-    public function isPossibleToReturnCash(array $data)
+    /**
+     * Sabemos si hay dinero suficiente para retornar
+     *
+     * @param array $data
+     * @return boolean
+     */
+    public function isPossibleToReturnCash(array $data): bool
     {
         $return_cash_value = $this->getCashToReturn($data);
 
         return ($data["current_status"]["total_status"] >= $return_cash_value);
     }
 
-    public function getCashToReturn(array $data)
+    /**
+     * Sabemos la cantidad de dinero a retornar
+     *
+     * @param array $data
+     * @return integer
+     */
+    public function getCashToReturn(array $data): int
     {
         return $data["sum_inflow"] - $data["amount_payment"];
     }
 
-    public function haveCashToReturn(array $data)
+    /**
+     * retorna si con el dinero actual se 
+     * puede dar cambio y cual es la mejor forma de hacerlo
+     *
+     * @param array $data
+     * @return array
+     */
+    public function haveCashToReturn(array $data): array
     {
         $return_cash_value = $this->getCashToReturn($data);
 
         $better_change = $this->generateBetterCashChange($data["current_status"], $return_cash_value);
 
-        //return [
-          //  "isGeneratedChange" => $isGeneratedChange,
-            //"data_response" => $data_response,
-            //"remaining_cash" => ($return_cash_value - $sum_value)
-        //];
-//dd($better_change);
         if(!$better_change["isGeneratedChange"])
         {
             $better_change = $this->generateBetterCashChangeSecond($better_change["data_response"], $better_change["remaining_cash"], $data["current_status"]);
         }
-//dd($better_change);
+
         return $better_change;
     }
 
-    public function generateBetterCashChange(array $current_cash_status, int $return_cash_value)
+    /**
+     * Primer paso en el algoritmo para obtener mejor tipo de cambio
+     *
+     * @param array $current_cash_status
+     * @param integer $return_cash_value
+     * @return array
+     */
+    public function generateBetterCashChange(array $current_cash_status, int $return_cash_value): array
     {
         $isGeneratedChange = false;
 
@@ -363,42 +401,42 @@ class TransactionRepository
 
         foreach($denominations as $denomination => $value)
         {
-                if(!isset($current_cash_status[$denomination]))
-                    continue;
-                $is_older = false;
-                $reset_iteration = false;
-                $count = 0;
-                $imposible_transaction = false;
-    
-                while(!$is_older)
+            if(!isset($current_cash_status[$denomination]))
+                continue;
+            $is_older = false;
+            $reset_iteration = false;
+            $count = 0;
+            $imposible_transaction = false;
+
+            while(!$is_older)
+            {
+                $previus_count = $count;
+                $count = $count + 1;
+
+                if($current_cash_status[$denomination] < $count)
                 {
-                    $previus_count = $count;
-                    $count = $count + 1;
-
-                    if($current_cash_status[$denomination] < $count)
-                    {
-                        $is_older = true;
-                        $imposible_transaction = true;
-                        //continue;
-                    }
-
-                    $previus_sum = $sum_value;
-                    $sum_value = $sum_value + $value;
-                    if(!$imposible_transaction)
-                        $is_older = ($sum_value >= $return_cash_value);
-                    $isGeneratedChange = (($sum_value == $return_cash_value) && !$imposible_transaction);
-                    $reverse_previus_denominations = ($is_older && ($previus_count == 0) );
+                    $is_older = true;
+                    $imposible_transaction = true;
+                    //continue;
                 }
 
-    
-                if($is_older || $imposible_transaction)
-                {
-                    if(!$isGeneratedChange)
-                    {  
-                        $sum_value = $previus_sum;
-                        $count = $previus_count;
-                    }
+                $previus_sum = $sum_value;
+                $sum_value = $sum_value + $value;
+                if(!$imposible_transaction)
+                    $is_older = ($sum_value >= $return_cash_value);
+                $isGeneratedChange = (($sum_value == $return_cash_value) && !$imposible_transaction);
+                $reverse_previus_denominations = ($is_older && ($previus_count == 0) );
+            }
+
+
+            if($is_older || $imposible_transaction)
+            {
+                if(!$isGeneratedChange)
+                {  
+                    $sum_value = $previus_sum;
+                    $count = $previus_count;
                 }
+            }
 
             $data_response[$denomination] = $count;
             $previus_denomination = $denomination;
@@ -410,7 +448,6 @@ class TransactionRepository
             }
         }
 
-        //dd($data_response, $return_cash_value);
         return [
             "isGeneratedChange" => $isGeneratedChange,
             "data_response" => $data_response,
@@ -419,7 +456,15 @@ class TransactionRepository
         
     }
 
-    public function generateBetterCashChangeSecond($data_response, $remaining_cash, $current_cash_status)
+    /**
+     * Segundo paso en el algoritmo para obtener mejor tipo de cambio
+     *
+     * @param [type] $data_response
+     * @param [type] $remaining_cash
+     * @param [type] $current_cash_status
+     * @return array
+     */
+    public function generateBetterCashChangeSecond($data_response, $remaining_cash, $current_cash_status): array
     {
         $denominations = self::DENOMINATIONS;
 
@@ -493,6 +538,13 @@ class TransactionRepository
 
     }
 
+    /**
+     * Creacion de la transaccion
+     *
+     * @param array $data_inflow
+     * @param array $data_outflow
+     * @return Transaction
+     */
     public function makePayment(array $data_inflow, array $data_outflow): Transaction
     {
         $transaction = Transaction::latest()->first();

@@ -5,17 +5,20 @@ namespace App\Management\Repositories;
 use App\CashOutflow;
 use App\Management\Interfaces\TransactionInterface;
 
-class OutflowCash implements TransactionInterface
+class TransactionRegister implements TransactionInterface
 {
     public function __construct()
     {
         
     }
 
+    public function process($data)
+    {
+        //
+    }
+
     public function create($data)
     {
-        CashOutflow::create($data);
-
-        return false;
+        //
     }
 }

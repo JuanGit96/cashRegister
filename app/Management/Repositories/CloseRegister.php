@@ -2,10 +2,10 @@
 
 namespace App\Management\Repositories;
 
+use App\CashInflow;
 use App\Management\Interfaces\TransactionInterface;
-use App\Transaction;
 
-class InflowCash implements TransactionInterface
+class CloseRegister implements TransactionInterface
 {
     public function __construct()
     {
@@ -19,6 +19,8 @@ class InflowCash implements TransactionInterface
 
     public function create($data)
     {
-        //
+        //   
     }
+
+
 }

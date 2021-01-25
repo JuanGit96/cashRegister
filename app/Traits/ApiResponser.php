@@ -33,12 +33,8 @@ trait ApiResponser
             return response()->json(['data' => $collection],$code);            
         }
 
-        #$transformer = $collection->first()->transformer;
-
-        #$collection = $this->filterData($collection,$transformer);
-        #$collection = $this->sortData($collection,$transformer);
         $collection = $this->paginate($collection);
-        #$collection = $this->transformData($collection, $transformer);
+
         $collection = $this->cacheResponse($collection);
 
         return response()->json($collection,$code);
@@ -46,37 +42,17 @@ trait ApiResponser
 
     protected function showOne(Model $instance, $message='', $code=200)
     {
-        #$transformer = $instance->transformer;
-
-        #$instance = $this->transformData($instance, $transformer);
-
         return response()->json(['data' => $instance, 'message' => $message, 'code' => $code],$code);
     }
 
     protected function showString(string $instance, $message='', $code=200)
     {
-        #$transformer = $instance->transformer;
-
-        #$instance = $this->transformData($instance, $transformer);
-
         return response()->json(['data' => $instance, 'message' => $message, 'code' => $code],$code);
     }    
 
     protected function showMessage($message, $code=200)
     {
         return response()->json(['data' => $message],$code);
-    }
-
-    protected function sortData(Collection $collection, $transformer)
-    {
-        if(request()->has('sort_by')){
-            $atribute = $transformer::originalAttribute(request()->sort_by);
-            //$collection = $collection->sortBy($atribute);
-            $collection = $collection->sortBy->{$atribute};
-        }
-
-        return $collection;
-
     }
 
     protected function paginate(Collection $collection)
@@ -109,27 +85,6 @@ trait ApiResponser
         $paginated->appends(request()->all());
 
         return $paginated;
-    }
-
-    protected function filterData(Collection $collection, $transformer)
-    {
-        foreach(request()->query() as $query => $valor){
-            $atribute = $transformer::originalAttribute($query);
-
-            if(isset($atribute,$valor)){
-                $collection = $collection->where($atribute,$valor);
-            }
-        }
-
-        return $collection;
-
-    }
-
-    protected function transformData($data, $transformer)
-    {
-        $transformation = fractal($data, new $transformer);
-
-        return $transformation->toArray();
     }
 
     protected function cacheResponse($data)
