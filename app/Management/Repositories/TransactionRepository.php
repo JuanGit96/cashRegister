@@ -412,6 +412,8 @@ class TransactionRepository
 
         $array_to_work = [];
 
+        $isGeneratedChange = false;
+
         foreach($denominations as $denomination => $value)
         {
             if($data_response[$denomination] <= 0)
@@ -421,24 +423,53 @@ class TransactionRepository
             }
             else
             {
-                //while(($data_response[$denomination] > 0) )
-                //{
-
-                //}
-
-                $data_response[$denomination] = $data_response[$denomination] - 1;
-                $remaining_cash = $remaining_cash + $value;
-
-                $new_current_cash_status = [];
-                foreach($array_to_work as $denomination => $quantity)
+                while(($data_response[$denomination] > 0) || !$isGeneratedChange )
                 {
-                    $new_current_cash_status[$denomination] = $quantity;
+                    $data_response[$denomination] = $data_response[$denomination] - 1;
+                    $remaining_cash = $remaining_cash + $value;
+    
+                    $new_current_cash_status = [];
+                    foreach($array_to_work as $denomination => $quantity)
+                    {
+                        $new_current_cash_status[$denomination] = $quantity;
+                    }
+    
+                    $_newResponseBetterCashChange = $this->generateBetterCashChange($new_current_cash_status, $remaining_cash);
+                    //dd($_newResponseBetterCashChange);
+                    $isGeneratedChange = $_newResponseBetterCashChange["isGeneratedChange"];
+
+                    if($isGeneratedChange)
+                        break;
                 }
 
-                $_newResponseBetterCashChange = $this->generateBetterCashChange($new_current_cash_status, $remaining_cash);
-                dd($_newResponseBetterCashChange);
+                if($isGeneratedChange)
+                {//dd("entra");
+                    break;
+                }
+                else
+                {
+                    $array_to_work[$denomination] = $current_cash_status[$denomination]; 
+                }
             }
 
+        }
+
+        if($isGeneratedChange)
+        {
+            //dd($_newResponseBetterCashChange, $data_response, $array_to_work);
+            foreach($data_response as $denomination => $quantity)
+            {
+                if(isset($_newResponseBetterCashChange["data_response"][$denomination]))
+                {
+                    $data_response[$denomination] = $_newResponseBetterCashChange["data_response"][$denomination];
+                }
+            }
+
+            return $data_response;
+        }
+        else
+        {
+            //retorna para el error
         }
 
     }
