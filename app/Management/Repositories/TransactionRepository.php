@@ -339,8 +339,6 @@ class TransactionRepository
 
         foreach($denominations as $denomination => $value)
         {
-            do {
-                # code...
                 $is_older = false;
                 $reset_iteration = false;
                 $count = 0;
@@ -362,57 +360,19 @@ class TransactionRepository
                     $sum_value = $sum_value + $value;
                     if(!$imposible_transaction)
                         $is_older = ($sum_value >= $return_cash_value);
-                    $isGeneratedChange = ($sum_value == $return_cash_value);
+                    $isGeneratedChange = (($sum_value == $return_cash_value) && !$imposible_transaction);
                     $reverse_previus_denominations = ($is_older && ($previus_count == 0) );
                 }
 
-                //if($imposible_transaction)
-                  //  continue;
     
-                if($is_older)
+                if($is_older || $imposible_transaction)
                 {
                     if(!$isGeneratedChange)
-                    {
+                    {  
                         $sum_value = $previus_sum;
                         $count = $previus_count;
                     }
                 }
-
-                
-////
-if($denomination == "two_hundred_cop")
-{
-    if(isset($previus_denomination))
-    {
-        //dd($previus_denomination, $data_response[$previus_denomination] > 0);
-    }
-}
-////
-
-                if($reverse_previus_denominations)
-                {
-                    if(isset($previus_denomination))
-                        if($data_response[$previus_denomination] > 0)
-                        {
-                            $data_response[$previus_denomination] = $data_response[$previus_denomination] - 1;
-                            
-                            
-////
-//if($denomination == "two_hundred_cop")
-//{
-    //if(isset($previus_denomination))
-    //{
-        dd($previus_denomination);
-    //}
-//}
-////
-                            
-                            
-                            $sum_value = $sum_value - $previus_value;
-                            $reset_iteration = true;
-                        }
-                }
-            } while ($reset_iteration);
 
             $data_response[$denomination] = $count;
             $previus_denomination = $denomination;
@@ -424,7 +384,12 @@ if($denomination == "two_hundred_cop")
             }
         }
 
-dd($data_response, $return_cash_value);
+//dd($data_response, $return_cash_value);
+        return [
+            "isGeneratedChange" => $isGeneratedChange,
+            "data_response" => $data_response,
+            "remaining_cash" => ($return_cash_value - $sum_value)
+        ];
         
     }
 
