@@ -99,7 +99,9 @@ class TransactionController extends Controller
         if(!$payment_is_verify["response"])
             return $this->errorsResponse($payment_is_verify["errors"][0],505);
 
-        $register = $transactionRepository->makePayment($request->all());
+        $data_outflow = $payment_is_verify["data_outflow"];
+
+        $register = $transactionRepository->makePayment($request->all(), $data_outflow);
 
         return $this->showOne($register, "Pago realizado correctamente");
     }

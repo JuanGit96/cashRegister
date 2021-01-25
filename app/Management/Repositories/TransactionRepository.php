@@ -165,9 +165,19 @@ class TransactionRepository
         foreach($current_satatus as $denomination => $quantity)
         {
             $current = $quantity;
-            $inflow = $inflows[$denomination] ?? 0;
-            $outflow = $outflows[$denomination] ?? 0;
-            $response[$denomination] = $current + $inflow - $outflow;
+
+            if(explode("_",$denomination)[0] == "total")
+            {
+                $inflow = $inflows["total_inflow"];
+                $outflow = $outflows["total_outflow"];
+                $response[$denomination] = $current + $inflow - $outflow;
+            }
+            else
+            {
+                $inflow = $inflows[$denomination];
+                $outflow = $outflows[$denomination];
+                $response[$denomination] = $current + $inflow - $outflow;
+            }
         }
 
         return $response;
@@ -263,14 +273,14 @@ class TransactionRepository
             $errors[] = "No hay dinero suficiente para dar el cambio";
 
         $have_cash_to_return = $this->haveCashToReturn($custom_data);
-//
-        if(!$have_cash_to_return)
+//dd($have_cash_to_return);
+        if(!$have_cash_to_return["isGeneratedChange"])
             $errors[] = "Hay dinero, pero no es posible juntar el cambio por las denominaciones en caja";        
         
-        $current_amount_increases = $this->currentAmountIncreases($custom_data);
+        //$current_amount_increases = $this->currentAmountIncreases($custom_data);
 
-        if(!$current_amount_increases)
-            $errors[] = "Luego de esta transaccion el monto no es superior";        
+        //if(!$current_amount_increases)
+          //  $errors[] = "Luego de esta transaccion el monto no es superior";        
     
         if(count($errors))
             return [
@@ -281,6 +291,7 @@ class TransactionRepository
 
         return [
             "response" => true,
+            "data_outflow" => $have_cash_to_return["data_response"],
         ];
     }
 
@@ -327,11 +338,13 @@ class TransactionRepository
             //"data_response" => $data_response,
             //"remaining_cash" => ($return_cash_value - $sum_value)
         //];
-
+//dd($better_change);
         if(!$better_change["isGeneratedChange"])
         {
             $better_change = $this->generateBetterCashChangeSecond($better_change["data_response"], $better_change["remaining_cash"], $data["current_status"]);
         }
+//dd($better_change);
+        return $better_change;
     }
 
     public function generateBetterCashChange(array $current_cash_status, int $return_cash_value)
@@ -465,25 +478,42 @@ class TransactionRepository
                 }
             }
 
-            return $data_response;
+            //return $data_response;
         }
         else
         {
             //retorna para el error
+            //return false;
         }
 
+        return [
+            "isGeneratedChange" => $isGeneratedChange,
+            "data_response" => $data_response,
+        ];
+
     }
 
-    public function currentAmountIncreases(array $data)
+    public function makePayment(array $data_inflow, array $data_outflow): Transaction
     {
+        $transaction = Transaction::latest()->first();
 
-    }
+        $current_cash = $this->deserializeData($transaction->current_cash_status);
 
 
+        $transaction_data["current_status"] = self::STATUS["transaction"];
 
-    public function makePayment(array $data): Transaction
-    {
+        $transaction_data["cash_inflows"] =  $this->processData($data_inflow,'inflow');
 
+        $transaction_data["cash_outflows"] = $this->processData($data_outflow,'outflow');
+
+        $_data_cash_inflows = $this->deserializeData($transaction_data["cash_inflows"]);
+        $_data_cash_outflows = $this->deserializeData($transaction_data["cash_outflows"]);
+
+        $new_status_cash = $this->getNewStatusCash($current_cash, $_data_cash_inflows, $_data_cash_outflows);
+
+        $transaction_data["current_cash_status"] = $this->processData($new_status_cash, 'status');
+
+        return Transaction::create($transaction_data);
     }
 
 }
