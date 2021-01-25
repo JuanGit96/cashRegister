@@ -320,7 +320,18 @@ class TransactionRepository
     {
         $return_cash_value = $this->getCashToReturn($data);
 
-        $better_cange = $this->generateBetterCashChange($data["current_status"], $return_cash_value);
+        $better_change = $this->generateBetterCashChange($data["current_status"], $return_cash_value);
+
+        //return [
+          //  "isGeneratedChange" => $isGeneratedChange,
+            //"data_response" => $data_response,
+            //"remaining_cash" => ($return_cash_value - $sum_value)
+        //];
+
+        if(!$better_change["isGeneratedChange"])
+        {
+            $better_change = $this->generateBetterCashChangeSecond($better_change["data_response"], $better_change["remaining_cash"], $data["current_status"]);
+        }
     }
 
     public function generateBetterCashChange(array $current_cash_status, int $return_cash_value)
@@ -339,6 +350,8 @@ class TransactionRepository
 
         foreach($denominations as $denomination => $value)
         {
+                if(!isset($current_cash_status[$denomination]))
+                    continue;
                 $is_older = false;
                 $reset_iteration = false;
                 $count = 0;
@@ -384,13 +397,50 @@ class TransactionRepository
             }
         }
 
-//dd($data_response, $return_cash_value);
+        //dd($data_response, $return_cash_value);
         return [
             "isGeneratedChange" => $isGeneratedChange,
             "data_response" => $data_response,
             "remaining_cash" => ($return_cash_value - $sum_value)
         ];
         
+    }
+
+    public function generateBetterCashChangeSecond($data_response, $remaining_cash, $current_cash_status)
+    {
+        $denominations = self::DENOMINATIONS;
+
+        $array_to_work = [];
+
+        foreach($denominations as $denomination => $value)
+        {
+            if($data_response[$denomination] <= 0)
+            {
+                $array_to_work[$denomination] = $current_cash_status[$denomination];
+                continue;
+            }
+            else
+            {
+                //while(($data_response[$denomination] > 0) )
+                //{
+
+                //}
+
+                $data_response[$denomination] = $data_response[$denomination] - 1;
+                $remaining_cash = $remaining_cash + $value;
+
+                $new_current_cash_status = [];
+                foreach($array_to_work as $denomination => $quantity)
+                {
+                    $new_current_cash_status[$denomination] = $quantity;
+                }
+
+                $_newResponseBetterCashChange = $this->generateBetterCashChange($new_current_cash_status, $remaining_cash);
+                dd($_newResponseBetterCashChange);
+            }
+
+        }
+
     }
 
     public function currentAmountIncreases(array $data)
