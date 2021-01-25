@@ -151,7 +151,7 @@ class TransactionController extends Controller
 
 
     /**
-     * Saber estado de la caja según fecha y hora determinada
+     * Ver registro de transaccion por ID
      * @param
      * @return void
      */    
