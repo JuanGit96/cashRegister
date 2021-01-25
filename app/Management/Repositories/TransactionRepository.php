@@ -481,7 +481,7 @@ class TransactionRepository
             }
             else
             {
-                while(($data_response[$denomination] > 0) || !$isGeneratedChange )
+                while(($data_response[$denomination] > 0) && !$isGeneratedChange )
                 {
                     $data_response[$denomination] = $data_response[$denomination] - 1;
                     $remaining_cash = $remaining_cash + $value;
