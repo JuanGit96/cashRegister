@@ -35,7 +35,7 @@ class TransactionController extends Controller
         $transactionRepository = new TransactionRepository();
         
         if($transactionRepository->cashRegisterIsOpen()) 
-            return $this->errorResponse('',505);
+            return $this->errorResponse('La caja ya está abierta',505);
 
         $register = $transactionRepository->openCashRegister($request->all());
 
@@ -53,7 +53,7 @@ class TransactionController extends Controller
         $transactionRepository = new TransactionRepository();
         
         if(!$transactionRepository->cashRegisterIsOpen()) 
-            return $this->errorResponse('',505);
+            return $this->errorResponse('La caja no está abierta',505);
 
         $register = $transactionRepository->closeCashRegister();
 
@@ -72,7 +72,7 @@ class TransactionController extends Controller
 
         #validar que la caja esté llena
         if(!$transaction->hasRegisters()) 
-            return $this->errorResponse('',505);
+            return $this->errorResponse('No hay registros para validar',505);
 
         #procesar estado actual de caja
         $response = $transaction->getCurrentCashRegisterStatus();
@@ -92,7 +92,7 @@ class TransactionController extends Controller
 
         #validar que la caja esté llena
         if(!$transactionRepository->cashRegisterIsOpen()) 
-            return $this->errorResponse('',505);
+            return $this->errorResponse('La caja no está abierta',505);
 
         $payment_is_verify = $transactionRepository->paymentIsVerify($request->all());
 
@@ -118,7 +118,7 @@ class TransactionController extends Controller
 
         #validar que la caja esté llena
         if(!$transaction->hasRegisters()) 
-            return $this->errorResponse('',505);
+            return $this->errorResponse('No hay registros para validar',505);
 
         #procesar estado actual de caja
         $response = $transaction->getEventLogs();
@@ -138,7 +138,7 @@ class TransactionController extends Controller
 
         #validar que la caja esté llena
         if(!$transaction->hasRegisters()) 
-            return $this->errorResponse('',505);
+            return $this->errorResponse('No hay registros para validar',505);
 
         #procesar estado actual de caja
         $response = $transaction->getCashRegisterStatusByDate($request->all());
@@ -161,7 +161,7 @@ class TransactionController extends Controller
 
         #validar que la caja esté llena
         if(!$transactionRepository->cashRegisterIsOpen()) 
-            return $this->errorResponse('',505);
+            return $this->errorResponse('No hay registros para validar',505);
 
         return $this->showOne($transaction);
     }
